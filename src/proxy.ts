@@ -67,6 +67,7 @@ export async function proxy(request: NextRequest) {
 
       if (!overportenSession) {
         const redirectUrl = buildOverportenEntryUrl(request, PROJECT_SLUG);
+        redirectUrl.searchParams.set("target", new URL(request.url).origin);
 
         if (pathname.startsWith("/api/") || !isNavigationRequest(request)) {
           return buildUnauthorizedApiResponse(request.url, redirectUrl);
