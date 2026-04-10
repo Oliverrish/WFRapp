@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -103,70 +104,88 @@ export default function VerifyPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8] px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#1e3a5f]">
-            <span className="text-xl font-bold text-white">W</span>
-          </div>
-          <CardTitle className="text-2xl font-semibold text-[#1a1a2e]">
-            Check your email
-          </CardTitle>
-          <CardDescription className="text-base text-[#64748b]">
-            We sent a 6-digit code to{" "}
-            <span className="font-medium text-[#1a1a2e]">{email}</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div className="flex justify-center gap-3" onPaste={handlePaste}>
-              {code.map((digit, i) => (
-                <Input
-                  key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(i, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="h-14 w-12 text-center text-xl font-semibold"
-                  disabled={loading}
-                />
-              ))}
+    <div className="relative min-h-screen flex items-center justify-center px-4">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-wfr-bg-cool to-white" />
+
+      <div className="relative w-full max-w-md animate-in fade-in-0 duration-500">
+        <Card className="shadow-lg ring-1 ring-border">
+          <CardHeader className="text-center pb-2">
+            {/* Logo matching sidebar branding */}
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary">
+              <span className="text-xl font-bold text-wfr-gold">W</span>
+            </div>
+            <div className="mb-4">
+              <p className="text-xs font-semibold tracking-widest text-foreground">
+                WORKSHOPS FOR
+              </p>
+              <p className="text-xs font-medium tracking-widest text-wfr-gold">
+                RETIREMENT
+              </p>
             </div>
 
-            {error && (
-              <p className="text-sm text-red-600 text-center">{error}</p>
-            )}
+            <CardTitle>
+              <h2 className="text-2xl">Check your email</h2>
+            </CardTitle>
+            <CardDescription className="text-base text-muted-foreground">
+              We sent a 6-digit code to{" "}
+              <span className="font-medium text-foreground">{email}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="flex justify-center gap-3" onPaste={handlePaste}>
+                {code.map((digit, i) => (
+                  <Input
+                    key={i}
+                    ref={(el) => { inputRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(i, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
+                    className="h-14 w-12 text-center text-xl font-semibold"
+                    disabled={loading}
+                  />
+                ))}
+              </div>
 
-            {loading && (
-              <p className="text-sm text-[#64748b] text-center">
-                Verifying...
-              </p>
-            )}
+              {error && (
+                <div className="rounded-lg bg-destructive/10 p-3">
+                  <p className="text-sm text-destructive text-center">{error}</p>
+                </div>
+              )}
 
-            <div className="text-center space-y-2">
-              <button
-                type="button"
-                onClick={handleResend}
-                className="text-sm text-[#1e3a5f] hover:underline font-medium"
-              >
-                Didn&apos;t receive a code? Resend
-              </button>
-              <div>
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push("/login")}
-                  className="text-sm text-[#64748b]"
+              {loading && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Verifying...
+                </div>
+              )}
+
+              <div className="text-center space-y-2">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  className="text-sm text-primary hover:underline font-medium"
                 >
-                  Use a different email
-                </Button>
+                  Didn&apos;t receive a code? Resend
+                </button>
+                <div>
+                  <Button
+                    variant="ghost"
+                    onClick={() => router.push("/login")}
+                    className="text-sm text-muted-foreground"
+                  >
+                    Use a different email
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

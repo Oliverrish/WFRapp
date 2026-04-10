@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, code } = schema.parse(body);
 
-    // Demo mode: demo@wfr.com with code 111111
+    // Demo mode: any @wfr.com email with code 111111
     const isDemo =
-      email.toLowerCase() === "demo@wfr.com" && code === "111111";
+      email.toLowerCase().endsWith("@wfr.com") && code === "111111";
 
     if (!isDemo) {
       const valid = await verifyOTP(email, code);
