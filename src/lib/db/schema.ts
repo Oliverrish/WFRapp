@@ -48,7 +48,7 @@ export const profiles = pgTable("profiles", {
   phone: varchar("phone", { length: 50 }),
   role: userRoleEnum("role").notNull().default("advisor"),
   avatarUrl: text("avatar_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Admin Scopes (scoped permissions for admin role) ───
@@ -73,10 +73,10 @@ export const otpCodes = pgTable("otp_codes", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),
   code: varchar("code", { length: 6 }).notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   attempts: integer("attempts").default(0).notNull(),
-  usedAt: timestamp("used_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Sessions ───────────────────────────────────────────
@@ -89,9 +89,9 @@ export const sessions = pgTable("sessions", {
   token: varchar("token", { length: 255 }).notNull().unique(),
   userAgent: text("user_agent"),
   ipAddress: varchar("ip_address", { length: 45 }),
-  expiresAt: timestamp("expires_at").notNull(),
-  lastActiveAt: timestamp("last_active_at").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  lastActiveAt: timestamp("last_active_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Leads ──────────────────────────────────────────────
@@ -105,8 +105,8 @@ export const leads = pgTable("leads", {
   lastName: varchar("last_name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Event Templates ────────────────────────────────────
@@ -115,11 +115,11 @@ export const eventTemplates = pgTable("event_templates", {
   id: uuid("id").defaultRandom().primaryKey(),
   templateName: varchar("template_name", { length: 255 }).notNull(),
   defaultTitle: varchar("default_title", { length: 255 }),
-  defaultDuration: integer("default_duration"), // minutes
+  defaultDuration: integer("default_duration"),
   defaultLocation: varchar("default_location", { length: 500 }),
   defaultNotes: text("default_notes"),
   defaultEventType: varchar("default_event_type", { length: 100 }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Events ─────────────────────────────────────────────
@@ -137,14 +137,14 @@ export const events = pgTable("events", {
   status: eventStatusEnum("status").notNull().default("draft"),
   locationName: varchar("location_name", { length: 500 }),
   locationAddress: text("location_address"),
-  startDatetime: timestamp("start_datetime").notNull(),
-  endDatetime: timestamp("end_datetime").notNull(),
+  startDatetime: timestamp("start_datetime", { withTimezone: true }).notNull(),
+  endDatetime: timestamp("end_datetime", { withTimezone: true }).notNull(),
   timezone: varchar("timezone", { length: 100 }).default("America/New_York"),
   capacity: integer("capacity"),
   notes: text("notes"),
-  repeatRule: varchar("repeat_rule", { length: 50 }), // weekly, monthly, null
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  repeatRule: varchar("repeat_rule", { length: 50 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Event Registrations ────────────────────────────────
@@ -158,8 +158,8 @@ export const eventRegistrations = pgTable("event_registrations", {
     .notNull()
     .references(() => leads.id, { onDelete: "cascade" }),
   status: registrationStatusEnum("status").notNull().default("registered"),
-  checkedInAt: timestamp("checked_in_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Event Approval Log ─────────────────────────────────
@@ -174,7 +174,7 @@ export const eventApprovalLog = pgTable("event_approval_log", {
     .notNull()
     .references(() => profiles.id, { onDelete: "cascade" }),
   comment: text("comment"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ── Files ──────────────────────────────────────────────
@@ -187,8 +187,8 @@ export const files = pgTable("files", {
   name: varchar("name", { length: 500 }).notNull(),
   path: text("path").notNull(),
   mimeType: varchar("mime_type", { length: 255 }),
-  size: integer("size"), // bytes
+  size: integer("size"),
   folder: varchar("folder", { length: 500 }),
   isTemplate: boolean("is_template").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
