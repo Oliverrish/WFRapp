@@ -2,15 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, FileText, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./sidebar-context";
-
-const items = [
-  { label: "Events", href: "/events", icon: Calendar },
-  { label: "Drafts", href: "/drafts", icon: FileText },
-  { label: "Files", href: "/files", icon: FolderOpen },
-];
+import { advisorBottomNavItems, isActiveNavItem } from "./nav-config";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -28,8 +22,8 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-white border-t border-border safe-area-pb">
       <div className="flex items-center justify-around h-16">
-        {items.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        {advisorBottomNavItems.map((item) => {
+          const isActive = isActiveNavItem(pathname, item.href);
           return (
             <Link
               key={item.label}
@@ -39,7 +33,7 @@ export function BottomNav() {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <item.icon className="h-5 w-5" />
+              {item.icon}
               <span className="text-xs font-medium">{item.label}</span>
             </Link>
           );

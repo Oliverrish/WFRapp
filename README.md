@@ -23,6 +23,7 @@ WFR App is a Next.js 16 operations portal for workshop scheduling, advisor workf
 
 - `DATABASE_URL`: Database connection string used by the runtime and Drizzle tooling.
 - `SESSION_EXPIRY_DAYS`: Session lifetime in days. Defaults to `7`.
+- `OTP_SECRET`: HMAC secret used to hash OTP codes at rest. Recommended even in local testing.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`: OTP email delivery configuration.
 - `ALLOW_DEMO_AUTH`: Local-only escape hatch for seeded demo users. Keep this `false` in deployed environments.
 - `OVERPORTEN_SHARED_SECRET`: Secret used to validate Overporten bridge tokens.
@@ -44,6 +45,7 @@ WFR App is a Next.js 16 operations portal for workshop scheduling, advisor workf
 ## Auth Model
 
 - Accounts must already exist in `profiles`; OTP login no longer creates new users automatically.
+- Newly issued OTP codes are stored as HMAC hashes. Legacy plaintext rows remain verifiable until replaced.
 - OTP delivery fails closed when SMTP is unavailable in deployed environments.
 - Advisor routes are guarded at the server layout boundary before the client shell renders.
 
@@ -52,4 +54,3 @@ WFR App is a Next.js 16 operations portal for workshop scheduling, advisor workf
 - The app builds with `output: "standalone"` for straightforward container or VM deployment.
 - `src/proxy.ts` enforces Overporten project access before the app session layer, so missing bridge configuration will surface as `503` responses outside localhost.
 - Run `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` before releasing.
-

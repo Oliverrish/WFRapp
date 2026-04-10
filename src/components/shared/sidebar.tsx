@@ -4,41 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
 import { useSidebar } from "./sidebar-context";
-import {
-  Calendar,
-  ClipboardCheck,
-  FilePlus,
-  FileText,
-  FolderOpen,
-  LogOut,
-  Shield,
-  UserCog,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-}
-
-const advisorNav: NavItem[] = [
-  { label: "Check-in List", href: "/events", icon: <ClipboardCheck className="h-5 w-5" /> },
-  { label: "Event Schedule", href: "/schedule", icon: <Calendar className="h-5 w-5" /> },
-  { label: "Add Event", href: "/events/new", icon: <FilePlus className="h-5 w-5" /> },
-  { label: "Drafts", href: "/drafts", icon: <FileText className="h-5 w-5" /> },
-  { label: "My Folder", href: "/files", icon: <FolderOpen className="h-5 w-5" /> },
-];
-
-const adminNav: NavItem[] = [
-  { label: "Admin Console", href: "/admin/dashboard", icon: <Shield className="h-5 w-5" /> },
-];
-
-const superAdminNav: NavItem[] = [
-  { label: "Platform Controls", href: "/super-admin/users", icon: <UserCog className="h-5 w-5" /> },
-];
+import {
+  advisorSidebarNavItems,
+  adminSidebarNavItems,
+  isActiveNavItem,
+  superAdminSidebarNavItems,
+  type NavItem,
+} from "./nav-config";
 
 function NavLink({
   item,
@@ -50,7 +26,7 @@ function NavLink({
   onNavClick?: () => void;
 }) {
   const pathname = usePathname();
-  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+  const isActive = isActiveNavItem(pathname, item.href);
 
   return (
     <Link
@@ -116,7 +92,7 @@ export function SidebarContent({
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {advisorNav.map((item) => (
+        {advisorSidebarNavItems.map((item) => (
           <NavLink key={item.href} item={item} collapsed={collapsed} onNavClick={onNavClick} />
         ))}
 
@@ -128,7 +104,7 @@ export function SidebarContent({
                 System
               </p>
             )}
-            {adminNav.map((item) => (
+            {adminSidebarNavItems.map((item) => (
               <NavLink key={item.href + item.label} item={item} collapsed={collapsed} onNavClick={onNavClick} />
             ))}
           </>
@@ -142,7 +118,7 @@ export function SidebarContent({
                 Platform
               </p>
             )}
-            {superAdminNav.map((item) => (
+            {superAdminSidebarNavItems.map((item) => (
               <NavLink key={item.href} item={item} collapsed={collapsed} onNavClick={onNavClick} />
             ))}
           </>
@@ -173,7 +149,6 @@ export function SidebarContent({
             </>
           )}
         </div>
-        {!collapsed && <p className="mt-2 text-center text-[10px] text-white/30">v2.00</p>}
       </div>
     </div>
   );

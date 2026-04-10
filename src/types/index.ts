@@ -9,6 +9,9 @@ import type {
   adminScopes,
   files,
   sessions,
+  userRoleEnum,
+  eventStatusEnum,
+  registrationStatusEnum,
 } from "@/lib/db/schema";
 
 export type Profile = InferSelectModel<typeof profiles>;
@@ -21,14 +24,8 @@ export type AdminScope = InferSelectModel<typeof adminScopes>;
 export type FileRecord = InferSelectModel<typeof files>;
 export type Session = InferSelectModel<typeof sessions>;
 
-export type UserRole = "advisor" | "admin" | "super_admin";
+export type UserRole = (typeof userRoleEnum.enumValues)[number];
 
-export type EventStatus =
-  | "draft"
-  | "pending_approval"
-  | "scheduled"
-  | "live"
-  | "completed"
-  | "cancelled";
+export type EventStatus = (typeof eventStatusEnum.enumValues)[number];
 
-export type RegistrationStatus = "registered" | "checked_in" | "no_show";
+export type RegistrationStatus = (typeof registrationStatusEnum.enumValues)[number];

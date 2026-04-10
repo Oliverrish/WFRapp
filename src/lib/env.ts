@@ -39,6 +39,22 @@ export function getSessionExpiryDays(): number {
   return parsedValue;
 }
 
+export function getOtpSecret(): string {
+  const otpSecret = readOptionalEnv("OTP_SECRET");
+  if (otpSecret) {
+    return otpSecret;
+  }
+
+  const sharedSecret = readOptionalEnv("OVERPORTEN_SHARED_SECRET");
+  if (sharedSecret) {
+    return sharedSecret;
+  }
+
+  throw new Error(
+    "OTP_SECRET is required. Set OTP_SECRET or OVERPORTEN_SHARED_SECRET."
+  );
+}
+
 export function isDemoAuthEnabled(): boolean {
   return !isProductionEnv() || readOptionalEnv("ALLOW_DEMO_AUTH") === "true";
 }
@@ -76,4 +92,3 @@ export function getEmailDeliveryConfig(): EmailDeliveryConfig | null {
     from: from ?? user!,
   };
 }
-

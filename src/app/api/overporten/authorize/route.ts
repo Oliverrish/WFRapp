@@ -3,11 +3,12 @@ import {
   appendProjectCookies,
   buildOverportenEntryUrl,
   clearProjectCookies,
+  getProjectSlug,
   sanitizeNextPath,
   validateProjectBridgeExchange,
 } from "@/lib/overporten";
 
-const PROJECT_SLUG = "wfr";
+const PROJECT_SLUG = getProjectSlug();
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

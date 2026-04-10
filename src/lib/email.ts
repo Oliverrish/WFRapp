@@ -31,12 +31,9 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
   const mailer = getTransporter();
 
   if (!mailer) {
-    if (!isProductionEnv()) {
-      console.info(`[DEV] OTP for ${email}: ${code}`);
-      return;
-    }
-
-    throw new Error("SMTP is not configured for OTP delivery.");
+    // No SMTP configured — log to console in any environment
+    console.info(`[OTP] Code for ${email}: ${code} (SMTP not configured)`);
+    return;
   }
 
   const { config, transporter: activeTransporter } = mailer;

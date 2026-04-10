@@ -2,34 +2,42 @@
 
 import { useEffect } from "react";
 
-const PROJECT_SLUG = "wfr";
-const DEFAULT_HUB_URL = "https://www.overporten.com";
 const SCRIPT_MARKER = "data-overporten-project-widget";
 
-function getHubUrl(): string {
-  if (typeof window !== "undefined") {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hubUrl = (window as any).__OVERPORTEN_HUB_URL__;
-    if (typeof hubUrl === "string") {
-      const value = hubUrl.trim();
-      if (value) return value;
-    }
-  }
-  return DEFAULT_HUB_URL;
+type OverportenWidgetProps = {
+  hubUrl: string;
+  projectSlug: string;
+};
+
+function normalizeHubUrl(value: string): string {
+  return value.replace(/\/+$/, "");
 }
 
-export function OverportenWidget() {
+export function OverportenWidget({
+  hubUrl,
+  projectSlug,
+}: OverportenWidgetProps) {
+  const normalizedHubUrl = normalizeHubUrl(hubUrl);
+
   useEffect(() => {
-    if (document.querySelector(`script[${SCRIPT_MARKER}="${PROJECT_SLUG}"]`)) {
+    if (!projectSlug) {
+      return;
+    }
+
+    if (document.querySelector(`script[${SCRIPT_MARKER}="${projectSlug}"]`)) {
       return;
     }
 
     const script = document.createElement("script");
-    script.src = `${getHubUrl()}/api/project-briefing/embed?projectSlug=${encodeURIComponent(PROJECT_SLUG)}`;
+    script.src = `${normalizedHubUrl}/api/project-briefing/embed?projectSlug=${encodeURIComponent(projectSlug)}`;
     script.defer = true;
-    script.setAttribute(SCRIPT_MARKER, PROJECT_SLUG);
+    script.setAttribute(SCRIPT_MARKER, projectSlug);
     document.head.appendChild(script);
-  }, []);
+
+    return () => {
+      script.remove();
+    };
+  }, [normalizedHubUrl, projectSlug]);
 
   return null;
 }

@@ -1,9 +1,13 @@
 // Edge-compatible: uses Web Crypto API instead of node:crypto
+import {
+  DEFAULT_PROJECT_SLUG,
+  getOverportenHubUrl,
+  getProjectSlug as resolveProjectSlug,
+} from "@/lib/project-config";
 
 export const PROJECT_APP_ACCESS_COOKIE = "overporten_app_access";
 export const PROJECT_WIDGET_TOKEN_COOKIE = "overporten_widget_token";
 
-const DEFAULT_HUB_URL = "https://www.overporten.com";
 const DEFAULT_NEXT_PATH = "/";
 
 interface SignedPayload {
@@ -33,18 +37,14 @@ function getSharedSecret(): string {
   return secret;
 }
 
-export function getProjectSlug(fallback: string): string {
-  const configured = String(
-    process.env.OVERPORTEN_PROJECT_SLUG || ""
-  ).trim();
-  return configured || fallback;
+export function getProjectSlug(
+  fallback: string = DEFAULT_PROJECT_SLUG
+): string {
+  return resolveProjectSlug(fallback);
 }
 
 function getHubUrl(): string {
-  const configured = String(
-    process.env.OVERPORTEN_PUBLIC_HUB_URL || DEFAULT_HUB_URL
-  ).trim();
-  return configured || DEFAULT_HUB_URL;
+  return getOverportenHubUrl();
 }
 
 function normalizeHostname(value: string): string {

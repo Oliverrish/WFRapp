@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
 import { otpCodes, sessions, profiles } from "@/lib/db/schema";
-import { eq, and, gt, isNull, desc } from "drizzle-orm";
-import { createHash, randomBytes, randomInt } from "crypto";
+import { eq, and, gt, isNull, desc, or } from "drizzle-orm";
+import { createHash, createHmac, randomBytes, randomInt } from "crypto";
 import { cookies } from "next/headers";
-import { getSessionExpiryDays } from "@/lib/env";
+import { getOtpSecret, getSessionExpiryDays } from "@/lib/env";
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_REQUEST_COOLDOWN_MS = 60 * 1000;
@@ -18,6 +18,12 @@ function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function hashOtpCode(email: string, code: string): string {
+  return createHmac("sha256", getOtpSecret())
+    .update(`${normalizeEmail(email)}:${code.trim()}`)
+    .digest("hex");
+}
+
 // ── OTP ────────────────────────────────────────────────
 
 export function generateOTP(): string {
@@ -27,16 +33,18 @@ export function generateOTP(): string {
 export async function createOTP(email: string): Promise<string> {
   const normalizedEmail = normalizeEmail(email);
   const code = generateOTP();
+  const codeHash = hashOtpCode(normalizedEmail, code);
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
 
   await db
     .update(otpCodes)
-    .set({ usedAt: new Date() })
+    .set({ usedAt: new Date(), code: null })
     .where(and(eq(otpCodes.email, normalizedEmail), isNull(otpCodes.usedAt)));
 
   await db.insert(otpCodes).values({
     email: normalizedEmail,
-    code,
+    code: null,
+    codeHash,
     expiresAt,
   });
 
@@ -69,6 +77,7 @@ export async function verifyOTP(
   code: string
 ): Promise<boolean> {
   const normalizedEmail = normalizeEmail(email);
+  const codeHash = hashOtpCode(normalizedEmail, code);
 
   const [otp] = await db
     .select()
@@ -76,11 +85,12 @@ export async function verifyOTP(
     .where(
       and(
         eq(otpCodes.email, normalizedEmail),
-        eq(otpCodes.code, code),
+        or(eq(otpCodes.codeHash, codeHash), eq(otpCodes.code, code)),
         gt(otpCodes.expiresAt, new Date()),
         isNull(otpCodes.usedAt)
       )
     )
+    .orderBy(desc(otpCodes.createdAt))
     .limit(1);
 
   if (!otp) return false;
@@ -89,7 +99,7 @@ export async function verifyOTP(
   // Mark as used
   await db
     .update(otpCodes)
-    .set({ usedAt: new Date() })
+    .set({ usedAt: new Date(), code: null, codeHash })
     .where(eq(otpCodes.id, otp.id));
 
   return true;
