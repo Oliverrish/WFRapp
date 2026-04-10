@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getHomeRouteForRole, normalizeAuthRedirect } from "@/lib/routes";
 import {
   Card,
   CardContent,
@@ -76,15 +77,25 @@ export default function VerifyPage() {
         body: JSON.stringify({ email, code: fullCode }),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        setError("Invalid or expired code. Please try again.");
+        setError(data?.error ?? "Invalid or expired code. Please try again.");
         setCode(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
         return;
       }
 
+      const storedRedirect = normalizeAuthRedirect(
+        sessionStorage.getItem("post_login_redirect")
+      );
       sessionStorage.removeItem("otp_email");
-      router.push("/events");
+      sessionStorage.removeItem("post_login_redirect");
+      router.replace(
+        storedRedirect ??
+          normalizeAuthRedirect(data?.redirectTo) ??
+          getHomeRouteForRole(data?.user?.role ?? "advisor")
+      );
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -94,13 +105,24 @@ export default function VerifyPage() {
 
   const handleResend = async () => {
     setError("");
-    await fetch("/api/auth/request-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    setCode(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
+    try {
+      const res = await fetch("/api/auth/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? "Unable to resend the code right now.");
+        return;
+      }
+
+      setCode(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch {
+      setError("Unable to resend the code right now.");
+    }
   };
 
   return (

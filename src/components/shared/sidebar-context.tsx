@@ -20,16 +20,7 @@ interface SidebarContextType {
   setHideChrome: (hide: boolean) => void;
 }
 
-const SidebarContext = createContext<SidebarContextType>({
-  isMobile: false,
-  isCollapsed: false,
-  isOpen: false,
-  hideChrome: false,
-  toggle: () => {},
-  open: () => {},
-  close: () => {},
-  setHideChrome: () => {},
-});
+const SidebarContext = createContext<SidebarContextType | null>(null);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -79,5 +70,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 }
 
 export function useSidebar() {
-  return useContext(SidebarContext);
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error("useSidebar must be used within a SidebarProvider");
+  }
+
+  return context;
 }

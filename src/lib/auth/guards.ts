@@ -1,14 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import type { Profile, UserRole } from "@/types";
-
-export function getHomeRouteForRole(role: UserRole) {
-  if (role === "advisor") {
-    return "/events";
-  }
-
-  return "/admin/dashboard";
-}
+import { getHomeRouteForRole } from "@/lib/routes";
+import type { Profile } from "@/types";
 
 export async function requireMinimumRole(
   minimumRole: "admin" | "super_admin"

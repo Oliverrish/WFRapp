@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { normalizeAuthRedirect } from "@/lib/routes";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +39,14 @@ export default function LoginPage() {
         return;
       }
 
-      // Store email for verify page
+      const redirectTo = normalizeAuthRedirect(searchParams.get("redirect"));
+
       sessionStorage.setItem("otp_email", email);
+      if (redirectTo) {
+        sessionStorage.setItem("post_login_redirect", redirectTo);
+      } else {
+        sessionStorage.removeItem("post_login_redirect");
+      }
       router.push("/verify");
     } catch {
       setError("Something went wrong. Please try again.");

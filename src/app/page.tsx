@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getHomeRouteForRole } from "@/lib/auth/guards";
+import { getHomeRouteForRole } from "@/lib/routes";
 
 export default async function HomePage() {
   const user = await getCurrentUser();

@@ -5,7 +5,6 @@ import {
   useContext,
   useState,
   useEffect,
-  useCallback,
   type ReactNode,
 } from "react";
 import type { Profile } from "@/types";
@@ -17,12 +16,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  logout: async () => {},
-  refreshUser: async () => {},
-});
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({
   children,
@@ -34,7 +28,8 @@ export function AuthProvider({
   const [user, setUser] = useState<Profile | null>(initialUser ?? null);
   const [loading, setLoading] = useState(initialUser === undefined);
 
-  const refreshUser = useCallback(async () => {
+  async function refreshUser() {
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/me");
       if (res.ok) {
@@ -48,11 +43,17 @@ export function AuthProvider({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }
 
   useEffect(() => {
-    refreshUser();
-  }, [refreshUser]);
+    if (initialUser !== undefined) {
+      setUser(initialUser);
+      setLoading(false);
+      return;
+    }
+
+    void refreshUser();
+  }, [initialUser]);
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });

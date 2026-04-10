@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   buildOverportenEntryUrl,
   clearProjectCookies,
+  getProjectSlug,
   isNavigationRequest,
   readProjectAccessFromRequest,
   shouldBypassProjectGuard,
 } from "@/lib/overporten";
 
-const PROJECT_SLUG = "wfr";
+const PROJECT_SLUG = getProjectSlug("wfr");
 
 const publicPaths = ["/login", "/verify", "/api/auth"];
 const overportenPassThrough = ["/api/overporten/authorize"];
@@ -38,10 +39,9 @@ function buildUnauthorizedRedirect(requestUrl: string, redirectUrl: URL) {
   return new Response(null, { status: 307, headers });
 }
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
 
-  // Allow static files
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
@@ -50,18 +50,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow Overporten authorize endpoint (token exchange callback)
-  if (overportenPassThrough.some((p) => pathname.startsWith(p))) {
+  if (overportenPassThrough.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  // OPTIONS requests pass through
   if (request.method === "OPTIONS") {
     return NextResponse.next();
   }
 
-  // --- Overporten guard (outer layer) ---
-  // Bypass on localhost in development
   if (!shouldBypassProjectGuard(request.url)) {
     try {
       const overportenSession = await readProjectAccessFromRequest(
@@ -70,20 +66,15 @@ export async function middleware(request: NextRequest) {
       );
 
       if (!overportenSession) {
-        // No valid Overporten session — redirect to Overporten hub
         const redirectUrl = buildOverportenEntryUrl(request, PROJECT_SLUG);
 
-        if (
-          pathname.startsWith("/api/") ||
-          !isNavigationRequest(request)
-        ) {
+        if (pathname.startsWith("/api/") || !isNavigationRequest(request)) {
           return buildUnauthorizedApiResponse(request.url, redirectUrl);
         }
 
         return buildUnauthorizedRedirect(request.url, redirectUrl);
       }
     } catch {
-      // Shared secret not configured
       return new Response("Overporten integration is not configured.", {
         status: 503,
         headers: { "cache-control": "no-store" },
@@ -91,22 +82,18 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // --- Internal session guard (inner layer) ---
-  // Allow public paths (login, verify, auth API)
-  if (publicPaths.some((p) => pathname.startsWith(p))) {
+  if (publicPaths.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  // Root redirect is allowed
   if (pathname === "/") {
     return NextResponse.next();
   }
 
-  // Check for internal session cookie
   const token = request.cookies.get("session_token")?.value;
   if (!token) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set("redirect", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -118,3 +105,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+

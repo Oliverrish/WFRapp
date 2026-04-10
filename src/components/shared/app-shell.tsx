@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthProvider } from "@/lib/auth/context";
+import type { Profile } from "@/types";
 import { SidebarProvider } from "./sidebar-context";
 import { Sidebar } from "./sidebar";
 import { MobileSidebar } from "./mobile-sidebar";
@@ -9,12 +10,17 @@ import { cn } from "@/lib/utils";
 
 interface AppShellProps {
   children: React.ReactNode;
+  initialUser: Profile;
   showBottomNav?: boolean;
 }
 
-export function AppShell({ children, showBottomNav = false }: AppShellProps) {
+export function AppShell({
+  children,
+  initialUser,
+  showBottomNav = false,
+}: AppShellProps) {
   return (
-    <AuthProvider>
+    <AuthProvider initialUser={initialUser}>
       <SidebarProvider>
         <div className="flex h-screen overflow-hidden">
           <Sidebar />

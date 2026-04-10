@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   verifyOTP,
   incrementOTPAttempts,
-  findOrCreateProfile,
+  findProfileByEmail,
   createSession,
   setSessionCookie,
+  normalizeEmail,
 } from "@/lib/auth";
-import { z } from "zod/v4";
+import { getHomeRouteForRole } from "@/lib/routes";
+import { isDemoAuthEnabled } from "@/lib/env";
+import { ZodError, z } from "zod/v4";
 
 const schema = z.object({
   email: z.email(),
@@ -17,15 +20,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, code } = schema.parse(body);
+    const normalizedEmail = normalizeEmail(email);
 
-    // Demo mode: any @wfr.com email with code 111111
+    // Demo mode is only available in development unless explicitly re-enabled.
     const isDemo =
-      email.toLowerCase().endsWith("@wfr.com") && code === "111111";
+      isDemoAuthEnabled() &&
+      normalizedEmail.endsWith("@wfr.com") &&
+      code === "111111";
 
     if (!isDemo) {
-      const valid = await verifyOTP(email, code);
+      const valid = await verifyOTP(normalizedEmail, code);
       if (!valid) {
-        await incrementOTPAttempts(email, code);
+        await incrementOTPAttempts(normalizedEmail, code);
         return NextResponse.json(
           { error: "Invalid or expired code" },
           { status: 401 }
@@ -33,17 +39,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const profile = await findOrCreateProfile(email);
+    const profile = await findProfileByEmail(normalizedEmail);
+    if (!profile) {
+      return NextResponse.json(
+        { error: "This account is not provisioned for access." },
+        { status: 403 }
+      );
+    }
+
     const token = await createSession(
       profile.id,
       req.headers.get("user-agent") ?? undefined,
-      req.headers.get("x-forwarded-for") ?? undefined
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined
     );
 
     await setSessionCookie(token);
 
-    return NextResponse.json({ success: true, user: profile });
-  } catch {
+    return NextResponse.json({
+      success: true,
+      user: profile,
+      redirectTo: getHomeRouteForRole(profile.role),
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    console.error("Failed to verify OTP.", error);
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
