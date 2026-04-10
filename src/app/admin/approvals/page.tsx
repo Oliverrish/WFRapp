@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PageHeader } from "@/components/shared/page-header";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
@@ -93,9 +93,9 @@ export default function ApprovalsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Event Approvals"
-        description="Review and approve advisor event submissions"
+      <AdminPageHeader
+        title="Approval Queue"
+        description="Review submitted events, request changes, and move items through the approval workflow."
       />
       <div className="p-4 md:p-8">
         {loading ? (

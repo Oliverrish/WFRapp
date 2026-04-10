@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { events, eventRegistrations, leads } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 
 const updateEventSchema = z.object({

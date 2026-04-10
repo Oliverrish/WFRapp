@@ -7,14 +7,14 @@ import {
   validateProjectBridgeExchange,
 } from "@/lib/overporten";
 
-const PROJECT_SLUG = "wfrapp";
+const PROJECT_SLUG = "wfr";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const nextPath = sanitizeNextPath(searchParams.get("next"));
 
   try {
-    const exchange = validateProjectBridgeExchange({
+    const exchange = await validateProjectBridgeExchange({
       appToken: searchParams.get("token"),
       widgetToken: searchParams.get("widgetToken"),
       expectedSlug: PROJECT_SLUG,

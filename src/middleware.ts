@@ -7,7 +7,7 @@ import {
   shouldBypassProjectGuard,
 } from "@/lib/overporten";
 
-const PROJECT_SLUG = "wfrapp";
+const PROJECT_SLUG = "wfr";
 
 const publicPaths = ["/login", "/verify", "/api/auth"];
 const overportenPassThrough = ["/api/overporten/authorize"];
@@ -38,7 +38,7 @@ function buildUnauthorizedRedirect(requestUrl: string, redirectUrl: URL) {
   return new Response(null, { status: 307, headers });
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static files
@@ -64,7 +64,7 @@ export function middleware(request: NextRequest) {
   // Bypass on localhost in development
   if (!shouldBypassProjectGuard(request.url)) {
     try {
-      const overportenSession = readProjectAccessFromRequest(
+      const overportenSession = await readProjectAccessFromRequest(
         request,
         PROJECT_SLUG
       );

@@ -1,7 +1,17 @@
-"use client";
+import type { Metadata } from "next";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { requireMinimumRole } from "@/lib/auth/guards";
 
-import { AppShell } from "@/components/shared/app-shell";
+export const metadata: Metadata = {
+  title: "Platform Control | WFR App",
+};
 
-export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+export default async function SuperAdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const user = await requireMinimumRole("super_admin");
+
+  return <AdminShell initialUser={user}>{children}</AdminShell>;
 }

@@ -10,14 +10,9 @@ import {
   FilePlus,
   FileText,
   FolderOpen,
-  Users,
-  LayoutDashboard,
-  CheckSquare,
   LogOut,
   Shield,
   UserCog,
-  Eye,
-  BarChart3,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -38,19 +33,11 @@ const advisorNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-  { label: "All Events", href: "/admin/events", icon: <Calendar className="h-5 w-5" /> },
-  { label: "Approvals", href: "/admin/approvals", icon: <CheckSquare className="h-5 w-5" /> },
-  { label: "Advisors", href: "/admin/advisors", icon: <Users className="h-5 w-5" /> },
-  { label: "Templates", href: "/admin/templates", icon: <FileText className="h-5 w-5" /> },
-  { label: "Leads", href: "/admin/leads", icon: <Users className="h-5 w-5" /> },
-  { label: "Reports", href: "/admin/dashboard", icon: <BarChart3 className="h-5 w-5" /> },
+  { label: "Admin Console", href: "/admin/dashboard", icon: <Shield className="h-5 w-5" /> },
 ];
 
 const superAdminNav: NavItem[] = [
-  { label: "User Management", href: "/super-admin/users", icon: <UserCog className="h-5 w-5" /> },
-  { label: "Admin Scopes", href: "/super-admin/scopes", icon: <Shield className="h-5 w-5" /> },
-  { label: "Impersonate", href: "/super-admin/impersonate", icon: <Eye className="h-5 w-5" /> },
+  { label: "Platform Controls", href: "/super-admin/users", icon: <UserCog className="h-5 w-5" /> },
 ];
 
 function NavLink({
@@ -138,7 +125,7 @@ export function SidebarContent({
             <Separator className="my-4 bg-white/10" />
             {!collapsed && (
               <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-                Admin
+                System
               </p>
             )}
             {adminNav.map((item) => (
@@ -152,7 +139,7 @@ export function SidebarContent({
             <Separator className="my-4 bg-white/10" />
             {!collapsed && (
               <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-                System
+                Platform
               </p>
             )}
             {superAdminNav.map((item) => (

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const PROJECT_SLUG = "wfrapp";
+const PROJECT_SLUG = "wfr";
 const DEFAULT_HUB_URL = "https://www.overporten.com";
 const SCRIPT_MARKER = "data-overporten-project-widget";
 

@@ -1,18 +1,22 @@
 "use client";
 
-import { PageHeader } from "@/components/shared/page-header";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Shield } from "lucide-react";
 
 export default function ScopesPage() {
   return (
     <>
-      <PageHeader title="Admin Scopes" description="Configure admin access permissions" />
+      <AdminPageHeader
+        title="Access Scopes"
+        description="Configure which advisors, records, and capabilities each admin can operate on."
+        eyebrow="Platform Control"
+      />
       <div className="p-4 md:p-8">
         <EmptyState
           icon={Shield}
-          title="Admin Scopes"
-          description="Configure which advisors and data each admin can access."
+          title="Administrative permissions"
+          description="Control which advisors and records each admin can access, review, and edit."
         />
       </div>
     </>

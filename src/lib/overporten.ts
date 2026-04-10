@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+// Edge-compatible: uses Web Crypto API instead of node:crypto
 
 export const PROJECT_APP_ACCESS_COOKIE = "overporten_app_access";
 export const PROJECT_WIDGET_TOKEN_COOKIE = "overporten_widget_token";
@@ -69,18 +69,56 @@ export function shouldBypassProjectGuard(url: string): boolean {
   );
 }
 
-function timingSafeEqualString(left: string, right: string): boolean {
-  const leftBuffer = Buffer.from(String(left || ""));
-  const rightBuffer = Buffer.from(String(right || ""));
+// Edge-compatible base64url helpers
+function base64urlEncode(data: Uint8Array): string {
+  const str = btoa(String.fromCharCode(...data));
+  return str.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
-  if (leftBuffer.length !== rightBuffer.length) {
+function base64urlDecode(str: string): Uint8Array {
+  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
+}
+
+function textToUint8(text: string): Uint8Array {
+  return new TextEncoder().encode(text);
+}
+
+function uint8ToText(data: Uint8Array): string {
+  return new TextDecoder().decode(data);
+}
+
+async function hmacSha256(key: string, data: string): Promise<string> {
+  const keyData = textToUint8(key);
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData.buffer as ArrayBuffer,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const dataBytes = textToUint8(data);
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, dataBytes.buffer as ArrayBuffer);
+  return base64urlEncode(new Uint8Array(signature));
+}
+
+function timingSafeEqualString(left: string, right: string): boolean {
+  const leftBytes = textToUint8(left);
+  const rightBytes = textToUint8(right);
+
+  if (leftBytes.length !== rightBytes.length) {
     return false;
   }
 
-  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+  let result = 0;
+  for (let i = 0; i < leftBytes.length; i++) {
+    result |= leftBytes[i] ^ rightBytes[i];
+  }
+  return result === 0;
 }
 
-function verifySignedValue(token: string): SignedPayload | null {
+async function verifySignedValue(token: string): Promise<SignedPayload | null> {
   const rawToken = String(token || "").trim();
   if (!rawToken) {
     return null;
@@ -93,19 +131,14 @@ function verifySignedValue(token: string): SignedPayload | null {
 
   const body = rawToken.slice(0, separator);
   const signature = rawToken.slice(separator + 1);
-  const expectedSignature = crypto
-    .createHmac("sha256", getSharedSecret())
-    .update(body)
-    .digest("base64url");
+  const expectedSignature = await hmacSha256(getSharedSecret(), body);
 
   if (!timingSafeEqualString(signature, expectedSignature)) {
     return null;
   }
 
   try {
-    const decoded = JSON.parse(
-      Buffer.from(body, "base64url").toString("utf8")
-    );
+    const decoded = JSON.parse(uint8ToText(base64urlDecode(body)));
     if (
       !decoded ||
       decoded.v !== 1 ||
@@ -129,11 +162,11 @@ function verifySignedValue(token: string): SignedPayload | null {
   }
 }
 
-export function verifyProjectBridgeToken(
+export async function verifyProjectBridgeToken(
   token: string,
   expectedSlug?: string
-): SignedPayload | null {
-  const signed = verifySignedValue(token);
+): Promise<SignedPayload | null> {
+  const signed = await verifySignedValue(token);
   if (!signed) {
     return null;
   }
@@ -159,38 +192,38 @@ export function verifyProjectBridgeToken(
   return signed;
 }
 
-export function verifyProjectAppAccessToken(
+export async function verifyProjectAppAccessToken(
   token: string,
   expectedSlug?: string
-): SignedPayload | null {
-  const signed = verifyProjectBridgeToken(token, expectedSlug);
+): Promise<SignedPayload | null> {
+  const signed = await verifyProjectBridgeToken(token, expectedSlug);
   if (!signed || (signed.value as Record<string, string>).kind !== "app_session") {
     return null;
   }
   return signed;
 }
 
-export function verifyProjectWidgetToken(
+export async function verifyProjectWidgetToken(
   token: string,
   expectedSlug?: string
-): SignedPayload | null {
-  const signed = verifyProjectBridgeToken(token, expectedSlug);
+): Promise<SignedPayload | null> {
+  const signed = await verifyProjectBridgeToken(token, expectedSlug);
   if (!signed || (signed.value as Record<string, string>).kind !== "widget") {
     return null;
   }
   return signed;
 }
 
-export function validateProjectBridgeExchange(input: {
+export async function validateProjectBridgeExchange(input: {
   appToken: string | null;
   widgetToken: string | null;
   expectedSlug: string;
-}): BridgeExchange | null {
-  const appSession = verifyProjectAppAccessToken(
+}): Promise<BridgeExchange | null> {
+  const appSession = await verifyProjectAppAccessToken(
     input.appToken || "",
     input.expectedSlug
   );
-  const widgetSession = verifyProjectWidgetToken(
+  const widgetSession = await verifyProjectWidgetToken(
     input.widgetToken || "",
     input.expectedSlug
   );
@@ -239,10 +272,10 @@ function parseCookieHeader(cookieHeader: string): Record<string, string> {
     );
 }
 
-export function readProjectAccessFromRequest(
+export async function readProjectAccessFromRequest(
   request: Request,
   fallbackSlug: string
-): SignedPayload | null {
+): Promise<SignedPayload | null> {
   const cookies = parseCookieHeader(request.headers.get("cookie") || "");
   return verifyProjectAppAccessToken(
     cookies[PROJECT_APP_ACCESS_COOKIE],
