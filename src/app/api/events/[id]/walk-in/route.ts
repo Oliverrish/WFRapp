@@ -4,6 +4,7 @@ import { events, leads, eventRegistrations } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { eq, and, or } from "drizzle-orm";
 import { z } from "zod/v4";
+import { logActivity } from "@/lib/activity";
 
 const walkInSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -115,6 +116,14 @@ export async function POST(
       .where(eq(eventRegistrations.id, existingReg.id))
       .returning();
 
+    await logActivity({
+      actorId: user.id,
+      action: "walkin.added",
+      entityType: "lead",
+      entityId: lead.id,
+      description: `Walk-in: ${firstName} ${lastName} checked in`,
+    });
+
     return NextResponse.json({ lead, registration: updated });
   }
 
@@ -128,6 +137,14 @@ export async function POST(
       checkedInAt: new Date(),
     })
     .returning();
+
+  await logActivity({
+    actorId: user.id,
+    action: "walkin.added",
+    entityType: "lead",
+    entityId: lead.id,
+    description: `Walk-in: ${firstName} ${lastName} checked in`,
+  });
 
   return NextResponse.json({ lead, registration }, { status: 201 });
 }

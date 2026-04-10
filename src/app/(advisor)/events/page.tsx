@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar, Plus, MapPin, Clock, Users } from "lucide-react";
@@ -46,11 +46,12 @@ export default function EventsPage() {
         title="Events"
         description="Manage your upcoming and past workshops"
         actions={
-          <Link href="/events/new">
-            <Button className="bg-accent text-accent-foreground hover:bg-wfr-gold-hover font-semibold gap-2">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Event</span>
-            </Button>
+          <Link
+            href="/events/new"
+            className={`${buttonVariants({ variant: "default" })} bg-accent text-accent-foreground hover:bg-wfr-gold-hover font-semibold gap-2`}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Event</span>
           </Link>
         }
       />

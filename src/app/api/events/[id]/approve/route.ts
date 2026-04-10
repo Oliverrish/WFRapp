@@ -4,6 +4,7 @@ import { events, eventApprovalLog } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { z } from "zod/v4";
+import { logActivity } from "@/lib/activity";
 
 const approveSchema = z.object({
   action: z.enum(["approved", "rejected", "changes_requested"]),
@@ -38,6 +39,13 @@ export async function POST(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
+  if (event.status !== "pending_approval") {
+    return NextResponse.json(
+      { error: "Only events pending approval can be reviewed." },
+      { status: 400 }
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -64,18 +72,36 @@ export async function POST(
 
   const newStatus = statusMap[action];
 
-  const [updated] = await db
-    .update(events)
-    .set({ status: newStatus, updatedAt: new Date() })
-    .where(eq(events.id, id))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const [reviewedEvent] = await tx
+      .update(events)
+      .set({ status: newStatus, updatedAt: new Date() })
+      .where(eq(events.id, id))
+      .returning();
 
-  // Create approval log entry
-  await db.insert(eventApprovalLog).values({
-    eventId: id,
-    action,
+    await tx.insert(eventApprovalLog).values({
+      eventId: id,
+      action,
+      actorId: user.id,
+      comment: comment ?? null,
+    });
+
+    return reviewedEvent;
+  });
+
+  const actionLabels: Record<string, string> = {
+    approved: "Approved",
+    rejected: "Rejected",
+    changes_requested: "Requested changes on",
+  };
+
+  await logActivity({
     actorId: user.id,
-    comment: comment ?? null,
+    action: `event.${action}`,
+    entityType: "event",
+    entityId: id,
+    description: `${actionLabels[action]} event "${event.title}"`,
+    metadata: comment ? { comment } : undefined,
   });
 
   return NextResponse.json({ event: updated });

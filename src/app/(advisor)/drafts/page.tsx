@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Plus, MapPin, Calendar, Send, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -92,11 +92,12 @@ export default function DraftsPage() {
         title="Drafts"
         description="Events you're still working on"
         actions={
-          <Link href="/events/new">
-            <Button className="bg-accent text-accent-foreground hover:bg-wfr-gold-hover font-semibold gap-2">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Event</span>
-            </Button>
+          <Link
+            href="/events/new"
+            className={`${buttonVariants({ variant: "default" })} bg-accent text-accent-foreground hover:bg-wfr-gold-hover font-semibold gap-2`}
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Event</span>
           </Link>
         }
       />
@@ -155,14 +156,11 @@ export default function DraftsPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <Link href={`/events/${draft.id}`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="hidden sm:inline-flex"
-                        >
-                          Edit
-                        </Button>
+                      <Link
+                        href={`/events/${draft.id}`}
+                        className={`${buttonVariants({ variant: "outline", size: "sm" })} hidden sm:inline-flex`}
+                      >
+                        Edit
                       </Link>
                       <Button
                         size="sm"

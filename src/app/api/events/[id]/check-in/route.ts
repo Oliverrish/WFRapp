@@ -4,6 +4,7 @@ import { events, eventRegistrations } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod/v4";
+import { logActivity } from "@/lib/activity";
 
 const checkInSchema = z.union([
   z.object({ registrationId: z.string().uuid() }),
@@ -97,6 +98,14 @@ export async function POST(
     .set({ status: "checked_in", checkedInAt: new Date() })
     .where(eq(eventRegistrations.id, registration.id))
     .returning();
+
+  await logActivity({
+    actorId: user.id,
+    action: "checkin.completed",
+    entityType: "registration",
+    entityId: registration.id,
+    description: `Checked in attendee for event`,
+  });
 
   return NextResponse.json({ registration: updated });
 }

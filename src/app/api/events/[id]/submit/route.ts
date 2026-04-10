@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { events, eventApprovalLog } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { eq } from "drizzle-orm";
+import { logActivity } from "@/lib/activity";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -39,18 +40,28 @@ export async function POST(
     );
   }
 
-  // Update status to pending_approval
-  const [updated] = await db
-    .update(events)
-    .set({ status: "pending_approval", updatedAt: new Date() })
-    .where(eq(events.id, id))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const [submittedEvent] = await tx
+      .update(events)
+      .set({ status: "pending_approval", updatedAt: new Date() })
+      .where(eq(events.id, id))
+      .returning();
 
-  // Create approval log entry
-  await db.insert(eventApprovalLog).values({
-    eventId: id,
-    action: "submitted",
+    await tx.insert(eventApprovalLog).values({
+      eventId: id,
+      action: "submitted",
+      actorId: user.id,
+    });
+
+    return submittedEvent;
+  });
+
+  await logActivity({
     actorId: user.id,
+    action: "event.submitted",
+    entityType: "event",
+    entityId: id,
+    description: `Submitted event "${event.title}" for approval`,
   });
 
   return NextResponse.json({ event: updated });

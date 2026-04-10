@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { type LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -28,20 +28,21 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
           {description}
         </p>
         {action && action.href ? (
-          <Link href={action.href}>
-            <Button
-              className={cn(
-                "mt-6 h-11 px-6 text-base font-semibold",
-                action.variant === "accent"
-                  ? "bg-accent text-accent-foreground hover:bg-wfr-gold-hover"
-                  : action.variant === "outline"
-                    ? "border-primary text-primary"
-                    : "bg-primary text-primary-foreground hover:bg-wfr-navy-light"
-              )}
-              variant={action.variant === "outline" ? "outline" : "default"}
-            >
-              {action.label}
-            </Button>
+          <Link
+            href={action.href}
+            className={cn(
+              buttonVariants({
+                variant: action.variant === "outline" ? "outline" : "default",
+              }),
+              "mt-6 h-11 px-6 text-base font-semibold",
+              action.variant === "accent"
+                ? "bg-accent text-accent-foreground hover:bg-wfr-gold-hover"
+                : action.variant === "outline"
+                  ? "border-primary text-primary"
+                  : "bg-primary text-primary-foreground hover:bg-wfr-navy-light"
+            )}
+          >
+            {action.label}
           </Link>
         ) : action ? (
           <Button

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     if (!isDemo) {
       const valid = await verifyOTP(normalizedEmail, code);
       if (!valid) {
-        await incrementOTPAttempts(normalizedEmail, code);
+        await incrementOTPAttempts(normalizedEmail);
         return NextResponse.json(
           { error: "Invalid or expired code" },
           { status: 401 }

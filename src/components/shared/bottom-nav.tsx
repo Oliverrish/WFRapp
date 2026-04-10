@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, ClipboardCheck, FolderOpen } from "lucide-react";
+import { Calendar, FileText, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./sidebar-context";
 
 const items = [
   { label: "Events", href: "/events", icon: Calendar },
-  { label: "Check-in", href: "/events", icon: ClipboardCheck },
+  { label: "Drafts", href: "/drafts", icon: FileText },
   { label: "Files", href: "/files", icon: FolderOpen },
 ];
 

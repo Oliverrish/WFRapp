@@ -18,20 +18,6 @@ function hashSessionToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function buildDisplayNameFromEmail(email: string): string {
-  const localPart = normalizeEmail(email).split("@")[0] ?? "";
-  const readableName = localPart
-    .replace(/[._-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!readableName) {
-    return email;
-  }
-
-  return readableName.replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
 // ── OTP ────────────────────────────────────────────────
 
 export function generateOTP(): string {
@@ -110,8 +96,7 @@ export async function verifyOTP(
 }
 
 export async function incrementOTPAttempts(
-  email: string,
-  _code: string
+  email: string
 ): Promise<void> {
   const normalizedEmail = normalizeEmail(email);
 
@@ -224,30 +209,6 @@ export async function getCurrentUser() {
   const token = await getSessionToken();
   if (!token) return null;
   return validateSession(token);
-}
-
-// ── Find or create profile ─────────────────────────────
-
-export async function findOrCreateProfile(email: string) {
-  const normalizedEmail = normalizeEmail(email);
-
-  const [existing] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.email, normalizedEmail))
-    .limit(1);
-
-  if (existing) return existing;
-
-  const [created] = await db
-    .insert(profiles)
-    .values({
-      email: normalizedEmail,
-      fullName: buildDisplayNameFromEmail(normalizedEmail),
-    })
-    .returning();
-
-  return created;
 }
 
 export async function findProfileByEmail(email: string) {

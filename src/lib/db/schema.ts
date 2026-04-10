@@ -177,6 +177,21 @@ export const eventApprovalLog = pgTable("event_approval_log", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ── Activity Log ───────────────────────────────────────
+
+export const activityLog = pgTable("activity_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: uuid("actor_id")
+    .notNull()
+    .references(() => profiles.id, { onDelete: "cascade" }),
+  action: varchar("action", { length: 100 }).notNull(), // e.g. "event.created", "event.approved", "checkin.completed"
+  entityType: varchar("entity_type", { length: 50 }).notNull(), // "event", "lead", "registration", "user"
+  entityId: uuid("entity_id"), // ID of the affected entity
+  description: text("description").notNull(), // Human-readable description
+  metadata: text("metadata"), // JSON string for extra context
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // ── Files ──────────────────────────────────────────────
 
 export const files = pgTable("files", {

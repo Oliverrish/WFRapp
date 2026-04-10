@@ -4,6 +4,7 @@ import { events, eventRegistrations, leads } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod/v4";
+import { logActivity } from "@/lib/activity";
 
 const updateEventSchema = z.object({
   title: z.string().min(1).optional(),
@@ -16,9 +17,6 @@ const updateEventSchema = z.object({
   notes: z.string().optional(),
   timezone: z.string().optional(),
   templateId: z.string().uuid().optional(),
-  status: z
-    .enum(["draft", "pending_approval", "scheduled", "live", "completed", "cancelled"])
-    .optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -126,26 +124,56 @@ export async function PATCH(
   }
 
   const data = parsed.data;
+  const startDatetime = data.startDatetime
+    ? new Date(data.startDatetime)
+    : new Date(event.startDatetime);
+  const endDatetime = data.endDatetime
+    ? new Date(data.endDatetime)
+    : new Date(event.endDatetime);
+
+  if (
+    Number.isNaN(startDatetime.getTime()) ||
+    Number.isNaN(endDatetime.getTime())
+  ) {
+    return NextResponse.json(
+      { error: "Invalid event date or time." },
+      { status: 400 }
+    );
+  }
+
+  if (endDatetime <= startDatetime) {
+    return NextResponse.json(
+      { error: "Event end time must be after the start time." },
+      { status: 400 }
+    );
+  }
 
   // Build update object with only provided fields
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (data.title !== undefined) updateData.title = data.title;
   if (data.description !== undefined) updateData.description = data.description;
-  if (data.startDatetime !== undefined) updateData.startDatetime = new Date(data.startDatetime);
-  if (data.endDatetime !== undefined) updateData.endDatetime = new Date(data.endDatetime);
+  if (data.startDatetime !== undefined) updateData.startDatetime = startDatetime;
+  if (data.endDatetime !== undefined) updateData.endDatetime = endDatetime;
   if (data.locationName !== undefined) updateData.locationName = data.locationName;
   if (data.locationAddress !== undefined) updateData.locationAddress = data.locationAddress;
   if (data.capacity !== undefined) updateData.capacity = data.capacity;
   if (data.notes !== undefined) updateData.notes = data.notes;
   if (data.timezone !== undefined) updateData.timezone = data.timezone;
   if (data.templateId !== undefined) updateData.templateId = data.templateId;
-  if (data.status !== undefined) updateData.status = data.status;
 
   const [updated] = await db
     .update(events)
     .set(updateData)
     .where(eq(events.id, id))
     .returning();
+
+  await logActivity({
+    actorId: user.id,
+    action: "event.updated",
+    entityType: "event",
+    entityId: id,
+    description: `Updated event "${updated.title}"`,
+  });
 
   return NextResponse.json({ event: updated });
 }
@@ -177,6 +205,14 @@ export async function DELETE(
   }
 
   await db.delete(events).where(eq(events.id, id));
+
+  await logActivity({
+    actorId: user.id,
+    action: "event.deleted",
+    entityType: "event",
+    entityId: id,
+    description: `Deleted event "${event.title}"`,
+  });
 
   return NextResponse.json({ success: true });
 }

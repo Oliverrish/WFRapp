@@ -4,6 +4,7 @@ import { events, eventRegistrations } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { eq, sql, desc } from "drizzle-orm";
 import { z } from "zod/v4";
+import { logActivity } from "@/lib/activity";
 
 const createEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -16,9 +17,7 @@ const createEventSchema = z.object({
   notes: z.string().optional(),
   timezone: z.string().optional(),
   templateId: z.string().uuid().optional(),
-  status: z
-    .enum(["draft", "pending_approval", "scheduled", "live", "completed", "cancelled"])
-    .default("draft"),
+  status: z.enum(["draft", "pending_approval"]).default("draft"),
 });
 
 export async function GET() {
@@ -75,6 +74,25 @@ export async function POST(request: NextRequest) {
   }
 
   const data = parsed.data;
+  const startDatetime = new Date(data.startDatetime);
+  const endDatetime = new Date(data.endDatetime);
+
+  if (
+    Number.isNaN(startDatetime.getTime()) ||
+    Number.isNaN(endDatetime.getTime())
+  ) {
+    return NextResponse.json(
+      { error: "Invalid event date or time." },
+      { status: 400 }
+    );
+  }
+
+  if (endDatetime <= startDatetime) {
+    return NextResponse.json(
+      { error: "Event end time must be after the start time." },
+      { status: 400 }
+    );
+  }
 
   const [created] = await db
     .insert(events)
@@ -82,8 +100,8 @@ export async function POST(request: NextRequest) {
       advisorId: user.id,
       title: data.title,
       description: data.description ?? null,
-      startDatetime: new Date(data.startDatetime),
-      endDatetime: new Date(data.endDatetime),
+      startDatetime,
+      endDatetime,
       locationName: data.locationName ?? null,
       locationAddress: data.locationAddress ?? null,
       capacity: data.capacity ?? null,
@@ -93,6 +111,14 @@ export async function POST(request: NextRequest) {
       status: data.status,
     })
     .returning();
+
+  await logActivity({
+    actorId: user.id,
+    action: "event.created",
+    entityType: "event",
+    entityId: created.id,
+    description: `Created event "${created.title}"`,
+  });
 
   return NextResponse.json({ event: created }, { status: 201 });
 }

@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WFR App
 
-## Getting Started
+WFR App is a Next.js 16 operations portal for workshop scheduling, advisor workflows, approvals, leads, and live event check-ins. The app uses the App Router, Drizzle ORM, Neon Postgres, SMTP-delivered OTP authentication, and an Overporten access layer.
 
-First, run the development server:
+## Requirements
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 20+
+- npm 11+
+- PostgreSQL or Neon reachable through `DATABASE_URL`
+- SMTP credentials for OTP delivery outside local development
+- Overporten bridge configuration for non-local access
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Copy `.env.example` to `.env.local`.
+2. Fill in the database, SMTP, and Overporten values.
+3. Install dependencies with `npm install`.
+4. Apply the schema with `npm run db:push`.
+5. Optionally seed local data with `npx tsx src/lib/db/seed.ts`.
+6. Start the app with `npm run dev`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+- `DATABASE_URL`: Database connection string used by the runtime and Drizzle tooling.
+- `SESSION_EXPIRY_DAYS`: Session lifetime in days. Defaults to `7`.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`: OTP email delivery configuration.
+- `ALLOW_DEMO_AUTH`: Local-only escape hatch for seeded demo users. Keep this `false` in deployed environments.
+- `OVERPORTEN_SHARED_SECRET`: Secret used to validate Overporten bridge tokens.
+- `OVERPORTEN_PROJECT_SLUG`: Project slug used when redirecting through Overporten.
+- `OVERPORTEN_PUBLIC_HUB_URL`: Optional hub base URL. Defaults to `https://www.overporten.com`.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev`: Start the Next.js dev server.
+- `npm run build`: Build the production bundle.
+- `npm run start`: Start the production server.
+- `npm run lint`: Run ESLint.
+- `npm run typecheck`: Run TypeScript without emitting output.
+- `npm run test`: Run the unit test suite.
+- `npm run db:generate`: Generate Drizzle migrations from schema changes.
+- `npm run db:push`: Push the current schema to the database.
+- `npm run db:studio`: Open Drizzle Studio.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Auth Model
 
-## Deploy on Vercel
+- Accounts must already exist in `profiles`; OTP login no longer creates new users automatically.
+- OTP delivery fails closed when SMTP is unavailable in deployed environments.
+- Advisor routes are guarded at the server layout boundary before the client shell renders.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The app builds with `output: "standalone"` for straightforward container or VM deployment.
+- `src/proxy.ts` enforces Overporten project access before the app session layer, so missing bridge configuration will surface as `503` responses outside localhost.
+- Run `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` before releasing.
+
