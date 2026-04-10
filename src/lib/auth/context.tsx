@@ -24,9 +24,15 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: async () => {},
 });
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({
+  children,
+  initialUser,
+}: {
+  children: ReactNode;
+  initialUser?: Profile | null;
+}) {
+  const [user, setUser] = useState<Profile | null>(initialUser ?? null);
+  const [loading, setLoading] = useState(initialUser === undefined);
 
   const refreshUser = useCallback(async () => {
     try {
