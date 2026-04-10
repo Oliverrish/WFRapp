@@ -1,18 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
-export default function NewEventPage() {
+export default function EventFormPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+      <EventFormPage />
+    </Suspense>
+  );
+}
+
+function EventFormPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const isEditing = !!editId;
+
   const [loading, setLoading] = useState(false);
+  const [loadingEvent, setLoadingEvent] = useState(isEditing);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -25,10 +40,37 @@ export default function NewEventPage() {
     notes: "",
   });
 
+  // Load existing event data when editing
+  useEffect(() => {
+    if (!editId) return;
+    fetch(`/api/events/${editId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.event) {
+          const e = data.event;
+          const start = new Date(e.startDatetime);
+          const end = new Date(e.endDatetime);
+          setForm({
+            title: e.title || "",
+            description: e.description || "",
+            date: format(start, "yyyy-MM-dd"),
+            startTime: format(start, "HH:mm"),
+            endTime: format(end, "HH:mm"),
+            capacity: e.capacity ? String(e.capacity) : "",
+            locationName: e.locationName || "",
+            locationAddress: e.locationAddress || "",
+            notes: e.notes || "",
+          });
+        }
+      })
+      .catch(() => toast.error("Failed to load event"))
+      .finally(() => setLoadingEvent(false));
+  }, [editId]);
+
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const buildPayload = (status: "draft" | "pending_approval") => {
+  const buildPayload = (status?: "draft" | "pending_approval") => {
     const startDatetime = form.date && form.startTime
       ? new Date(`${form.date}T${form.startTime}`).toISOString()
       : new Date().toISOString();
@@ -36,7 +78,7 @@ export default function NewEventPage() {
       ? new Date(`${form.date}T${form.endTime}`).toISOString()
       : new Date(Date.now() + 90 * 60000).toISOString();
 
-    return {
+    const payload: Record<string, unknown> = {
       title: form.title,
       description: form.description || undefined,
       startDatetime,
@@ -45,8 +87,9 @@ export default function NewEventPage() {
       locationAddress: form.locationAddress || undefined,
       capacity: form.capacity ? parseInt(form.capacity) : undefined,
       notes: form.notes || undefined,
-      status,
     };
+    if (status) payload.status = status;
+    return payload;
   };
 
   const handleSubmit = async (status: "draft" | "pending_approval") => {
@@ -56,22 +99,28 @@ export default function NewEventPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/events", {
-        method: "POST",
+      const url = isEditing ? `/api/events/${editId}` : "/api/events";
+      const method = isEditing ? "PATCH" : "POST";
+      const payload = isEditing ? buildPayload() : buildPayload(status);
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildPayload(status)),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json();
-        toast.error(data.error || "Failed to create event");
+        toast.error(data.error || "Failed to save event");
         return;
       }
       toast.success(
-        status === "draft"
-          ? "Event saved as draft"
-          : "Event submitted for approval"
+        isEditing
+          ? "Event updated"
+          : status === "draft"
+            ? "Event saved as draft"
+            : "Event submitted for approval"
       );
-      router.push(status === "draft" ? "/drafts" : "/events");
+      router.push(isEditing ? `/events/${editId}` : status === "draft" ? "/drafts" : "/events");
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -79,19 +128,37 @@ export default function NewEventPage() {
     }
   };
 
+  if (loadingEvent) {
+    return (
+      <>
+        <PageHeader
+          title="Edit Event"
+          breadcrumbs={[{ label: "Events", href: "/events" }, { label: "Loading..." }]}
+        />
+        <div className="p-4 md:p-8">
+          <Card className="max-w-2xl">
+            <CardContent className="p-6 md:p-8 space-y-6">
+              <LoadingSkeleton variant="card" count={1} />
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader
-        title="Add Event"
+        title={isEditing ? "Edit Event" : "Add Event"}
         breadcrumbs={[
           { label: "Events", href: "/events" },
-          { label: "New Event" },
+          { label: isEditing ? "Edit Event" : "New Event" },
         ]}
       />
       <div className="p-4 md:p-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
         <Card className="max-w-2xl shadow-sm">
           <CardContent className="p-6 md:p-8">
-            <form onSubmit={(e) => { e.preventDefault(); handleSubmit("pending_approval"); }} className="space-y-8">
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(isEditing ? "draft" : "pending_approval"); }} className="space-y-8">
               {/* Event Details */}
               <section className="space-y-4">
                 <h4 className="text-lg">Event Details</h4>
@@ -122,42 +189,21 @@ export default function NewEventPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-base">Date</Label>
-                    <Input
-                      type="date"
-                      value={form.date}
-                      onChange={(e) => update("date", e.target.value)}
-                      className="h-12 text-base"
-                    />
+                    <Input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className="h-12 text-base" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-base">Capacity</Label>
-                    <Input
-                      type="number"
-                      placeholder="20"
-                      value={form.capacity}
-                      onChange={(e) => update("capacity", e.target.value)}
-                      className="h-12 text-base"
-                    />
+                    <Input type="number" placeholder="20" value={form.capacity} onChange={(e) => update("capacity", e.target.value)} className="h-12 text-base" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-base">Start Time</Label>
-                    <Input
-                      type="time"
-                      value={form.startTime}
-                      onChange={(e) => update("startTime", e.target.value)}
-                      className="h-12 text-base"
-                    />
+                    <Input type="time" value={form.startTime} onChange={(e) => update("startTime", e.target.value)} className="h-12 text-base" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-base">End Time</Label>
-                    <Input
-                      type="time"
-                      value={form.endTime}
-                      onChange={(e) => update("endTime", e.target.value)}
-                      className="h-12 text-base"
-                    />
+                    <Input type="time" value={form.endTime} onChange={(e) => update("endTime", e.target.value)} className="h-12 text-base" />
                   </div>
                 </div>
               </section>
@@ -167,21 +213,11 @@ export default function NewEventPage() {
                 <h4 className="text-lg">Location</h4>
                 <div className="space-y-2">
                   <Label className="text-base">Venue Name</Label>
-                  <Input
-                    placeholder="Scotch & Sirloin Restaurant"
-                    value={form.locationName}
-                    onChange={(e) => update("locationName", e.target.value)}
-                    className="h-12 text-base"
-                  />
+                  <Input placeholder="Scotch & Sirloin Restaurant" value={form.locationName} onChange={(e) => update("locationName", e.target.value)} className="h-12 text-base" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-base">Address</Label>
-                  <Input
-                    placeholder="123 Main St, City, State"
-                    value={form.locationAddress}
-                    onChange={(e) => update("locationAddress", e.target.value)}
-                    className="h-12 text-base"
-                  />
+                  <Input placeholder="123 Main St, City, State" value={form.locationAddress} onChange={(e) => update("locationAddress", e.target.value)} className="h-12 text-base" />
                 </div>
               </section>
 
@@ -201,23 +237,36 @@ export default function NewEventPage() {
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 px-6 text-base border-primary text-primary"
-                  onClick={() => handleSubmit("draft")}
-                  disabled={loading}
-                >
-                  Save as Draft
-                </Button>
-                <Button
-                  type="submit"
-                  className="h-12 px-6 text-base font-semibold bg-primary hover:bg-wfr-navy-light"
-                  disabled={loading}
-                >
-                  {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                  Submit for Approval
-                </Button>
+                {isEditing ? (
+                  <Button
+                    type="submit"
+                    className="h-12 px-6 text-base font-semibold bg-primary hover:bg-wfr-navy-light"
+                    disabled={loading}
+                  >
+                    {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Save Changes
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-12 px-6 text-base border-primary text-primary"
+                      onClick={() => handleSubmit("draft")}
+                      disabled={loading}
+                    >
+                      Save as Draft
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="h-12 px-6 text-base font-semibold bg-primary hover:bg-wfr-navy-light"
+                      disabled={loading}
+                    >
+                      {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Submit for Approval
+                    </Button>
+                  </>
+                )}
               </div>
             </form>
           </CardContent>
