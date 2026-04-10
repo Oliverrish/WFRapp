@@ -38,7 +38,7 @@ function buildUnauthorizedRedirect(requestUrl: string, redirectUrl: URL) {
   return new Response(null, { status: 307, headers });
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static files
